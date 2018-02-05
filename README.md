@@ -36,7 +36,7 @@ func PutMessage(message Message) {
 
 ### 2.2 Định nghĩa WorkerPool
 
-go-workerpool
+workerpool
 
 ```
 var MaxLenWorker int = 10
@@ -110,7 +110,7 @@ func main() {
 
 ### 2.4 Chạy chương trình
 
-Để chạy chương trình, vào thư mục $GOPATH/src/github.com/tungct
+Để chạy chương trình, vào thư mục $GOPATH/src/github.com/tungct/go-libs
 
 ```
 $ go run /server/server.go
