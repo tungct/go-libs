@@ -1,10 +1,11 @@
-package go_messqueue
+package messqueue
 
 import (
 	"fmt"
 )
 
 type Message struct {
+	Status int // status field to check rule
 	Content   string
 }
 
