@@ -16,6 +16,7 @@ go-messqueue.go:
 
 ```
 type Message struct {
+	Status int // status field to check rule
 	Content   string
 }
 
@@ -32,6 +33,7 @@ func PutMessage(message Message) {
 		fmt.Println("Full Queue")
 	}
 }
+
 ```
 
 ### 2.2 Định nghĩa WorkerPool
@@ -43,26 +45,14 @@ var MaxLenWorker int = 10
 // Worker pool
 var Worker chan(int)
 
-func WriteToDisk(id int) bool{
-	Worker <-id
-	message := <-go_messqueue.Queue
-	fmt.Println("Worker ", id, "execute Message")
+func CallWorker(idWoker int){
+	message := <-messqueue.Queue
+	rule_engine.RuleSys(idWoker, message)
 
-	// check exits file output
-	if _, err := os.Stat("output.json"); err == nil {
-		f, _ := os.OpenFile("output.json", os.O_APPEND|os.O_WRONLY, 0600)
-		rs, _ := json.Marshal(message)
-		if _, err := f.Write(rs); err != nil {
-			panic(err)
-		}
-		return true
-	}else {
-		jsonData, _  := json.Marshal(message)
-		ioutil.WriteFile("output.json", jsonData, 0600)
-		return true
-	}
-	return false
+	//return worker to pool
+	Worker <- idWoker
 }
+
 ```
 
 ### 2.3 Server
@@ -86,26 +76,25 @@ func RecMessage(rw http.ResponseWriter, request *http.Request) {
 
 
 func main() {
-	go_messqueue.Queue = make(chan go_messqueue.Message, go_messqueue.MaxLenQueue)
-	go_workerpool.Worker = make(chan int, go_workerpool.MaxLenWorker)
+	messqueue.Queue = make(chan messqueue.Message, messqueue.MaxLenQueue)
+	workerpool.Worker = make(chan int, workerpool.MaxLenWorker)
 
-	for id := 0 ; id < go_workerpool.MaxLenWorker ; id ++{
-		go_workerpool.Worker <-id
+	for id := 0 ; id < workerpool.MaxLenWorker ; id ++{
+		workerpool.Worker <-id
 	}
 
 	// Worker execute message in pool, write to disk
 	go func() {
 		for {
-			w := <- go_workerpool.Worker
-			go_workerpool.WriteToDisk(w)
+			w := <- workerpool.Worker
+			workerpool.CallWorker(w)
 		}
 	}()
-
-
-	router := mux.NewRouter()
-	router.HandleFunc("/message", RecMessage).Methods("POST")
-	log.Fatal(http.ListenAndServe(":8000", router))
+	fmt.Println("Server run at port 8000")
+	http.HandleFunc("/message", RecMessage)
+	http.ListenAndServe(":8000", nil)
 }
+
 ```
 
 ### 2.4 Chạy chương trình
@@ -120,7 +109,7 @@ Server run at port 8000
 Call REST API với phương thức POST
 
 ```
-curl -X POST -d "{\"content\": \"test\"}" http://localhost:8000/message
+curl -X POST -d '{"status":1,"content":"test"}' http://127.0.0.1:8000/message
 ```
 ### 2.5 Test Performance bằng go-wrk
 
