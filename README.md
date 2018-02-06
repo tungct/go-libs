@@ -173,7 +173,7 @@ curl -X POST -d '{"status":1,"content":"test"}' http://127.0.0.1:8000/message
 
 
 ```
-./go-wrk -M POST -d 5 -body "{\"content\": \"test\"}" http://127.0.0.1:8000/message
+./go-wrk -M POST -d 5 -body "{\"status\":1,\"content\": \"test\"}" http://127.0.0.1:8000/message
 ```
 
 Kết quả :
