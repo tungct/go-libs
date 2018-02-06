@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+// Rule
 func RuleSys(idWoker int, message messqueue.Message){
 	if message.Status == 1{
 		fmt.Println("1")
