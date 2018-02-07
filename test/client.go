@@ -5,16 +5,19 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"fmt"
 )
 
 const (
-	message       = "Hello"
+	messageInit       = "Hello"
+	messagePublish   = "Job"
 	StopCharacter = "\r\n\r\n"
 )
 
 func SocketClient(ip string, port int) {
 	addr := strings.Join([]string{ip, strconv.Itoa(port)}, ":")
 	conn, err := net.Dial("tcp", addr)
+	fmt.Println(conn)
 
 	defer conn.Close()
 
@@ -22,13 +25,13 @@ func SocketClient(ip string, port int) {
 		log.Fatalln(err)
 	}
 
-	conn.Write([]byte(message))
+	conn.Write([]byte(messageInit))
 	conn.Write([]byte(StopCharacter))
-	log.Printf("Send: %s", message)
-
+	log.Printf("Send: %s", messageInit)
 	buff := make([]byte, 1024)
 	n, _ := conn.Read(buff)
 	log.Printf("Receive: %s", buff[:n])
+	fmt.Println(string(buff[:n]))
 
 }
 

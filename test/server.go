@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	messageInitResponse       = "OK"
+	messageInitResponse       = "Hello"
 )
 
 func SocketServer(port int) {
@@ -65,6 +65,7 @@ func handler(conn net.Conn) {
 		}
 
 	}
+	//time.Sleep(1 * time.Second)
 	w.Write([]byte(messageInitResponse))
 	w.Flush()
 	log.Printf("Send: %s", messageInitResponse)
