@@ -1,43 +1,25 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
-	"strconv"
-	"strings"
+	"encoding/gob"
 )
 
-const (
-	messageInit       = "Hello"
-	messagePublish   = "Job"
-	StopCharacter = "\r\n\r\n"
-)
-
-func SocketClient(ip string, port int) {
-	addr := strings.Join([]string{ip, strconv.Itoa(port)}, ":")
-
-	conn, err := net.Dial("tcp", addr)
-	defer conn.Close()
-
-	if err != nil {
-		log.Fatalln(err)
-	}
-	conn.Write([]byte(messageInit))
-	conn.Write([]byte(StopCharacter))
-	log.Printf("Send: %s", messageInit)
-	buff := make([]byte, 1024)
-	n, _ := conn.Read(buff)
-	log.Printf("Receive: %s", buff[:n])
-
+type P struct {
+	M, N int64
 }
 
 func main() {
-
-	var (
-		ip   = "127.0.0.1"
-		port = 8000
-	)
-
-	SocketClient(ip, port)
-
+	fmt.Println("start client");
+	conn, err := net.Dial("tcp", "localhost:8080")
+	if err != nil {
+		log.Fatal("Connection error", err)
+	}
+	encoder := gob.NewEncoder(conn)
+	p := &P{1, 2}
+	encoder.Encode(p)
+	conn.Close()
+	fmt.Println("done");
 }

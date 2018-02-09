@@ -7,6 +7,7 @@ import (
 	"strings"
 	"github.com/tungct/go-libs/messqueue"
 	"fmt"
+	"encoding/gob"
 )
 
 const (
@@ -41,6 +42,8 @@ func SendMessage(message messqueue.Message, ip string, port int){
 	if err != nil {
 		log.Fatalln(err)
 	}
+	encoder := gob.NewEncoder(conn)
+	encoder.Encode(message)
 	conn.Write([]byte(fmt.Sprintf("%v", message)))
 	conn.Write([]byte(StopCharacter))
 	log.Printf("Send: %s", message)
