@@ -24,7 +24,7 @@ func RecMessage(rw http.ResponseWriter, request *http.Request) {
 
 
 func main() {
-	messqueue.Queue = make(chan messqueue.Message, messqueue.MaxLenQueue)
+	messqueue.Queue = messqueue.InitQueue(messqueue.MaxLenQueue)
 	workerpool.Worker = make(chan int, workerpool.MaxLenWorker)
 
 	for id := 0 ; id < workerpool.MaxLenWorker ; id ++{

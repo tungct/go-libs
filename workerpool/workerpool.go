@@ -11,7 +11,7 @@ var Worker chan(int)
 
 func CallWorker(idWoker int){
 	message := <-messqueue.Queue
-	rule_engine.RuleSys(idWoker, message)
+	rule_engine.RuleSys(idWoker, message.(messqueue.Message))
 
 	//return worker to pool
 	Worker <- idWoker
