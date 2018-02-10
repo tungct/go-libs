@@ -17,10 +17,13 @@ func HandleConnection(conn net.Conn) {
 	mess := &messqueue.Message{}
 	dec.Decode(mess)
 
+	// status 1 : Init connect
 	if mess.Status == 1{
 		conn.Write([]byte("OK"))
 		fmt.Printf("Received : %+v", mess);
 		conn.Close()
+
+	// status 2 : Publish message
 	}else if mess.Status == 2{
 		indexTopic := Topic.GetIndexTopic(mess.Status, Topics)
 
@@ -35,10 +38,13 @@ func HandleConnection(conn net.Conn) {
 		conn.Write([]byte("Success"))
 		fmt.Printf("Received : %+v", mess);
 		conn.Close()
+
+	// status 3 : Subscribe message
 	}else if mess.Status == 3{
+		var messResponse messqueue.Message
 		topicName, _ := strconv.Atoi(mess.Content)
 		indexTopic := Topic.GetIndexTopic(topicName, Topics)
-		messResponse := Topic.Subscribe(Topics[indexTopic])
+		_, messResponse = Topic.Subscribe(Topics[indexTopic])
 		encoder := gob.NewEncoder(conn)
 		encoder.Encode(messResponse)
 		conn.Close()

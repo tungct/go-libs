@@ -29,8 +29,13 @@ func PublishToTopic(topic Topic, message messqueue.Message){
 	messqueue.PutMessageToTopic(message, topic.MessQueue)
 }
 
-func Subscribe(topic Topic) messqueue.Message{
-	message := <- topic.MessQueue
+func Subscribe(topic Topic) (succ bool, ms messqueue.Message){
+	var message interface{}
+	var er bool = false
+	if len(topic.MessQueue )> 0{
+		message = <- topic.MessQueue
+		er = true
+	}
 	mess := message.(messqueue.Message)
-	return mess
+	return er, mess
 }
