@@ -17,7 +17,14 @@ var Queue MessQueue
 func InitMessage() Message{
 	var message Message
 	message.Status = 1
-	message.Content = "test"
+	message.Content = "Init"
+	return message
+}
+
+func TestMessage() Message{
+	var message Message
+	message.Status = 2
+	message.Content = "Message"
 	return message
 }
 

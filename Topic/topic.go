@@ -5,23 +5,32 @@ import (
 )
 
 type Topic struct {
-	Name string
+	Name int
 	MessQueue messqueue.MessQueue
 }
 
-func InitTopic(name string, len int) Topic{
+func InitTopic(name int, len int) Topic{
 	var topic Topic
 	topic.Name = name
 	topic.MessQueue = messqueue.InitQueue(len)
 	return topic
 }
 
+func GetIndexTopic(name int, listTopic []Topic) int {
+	for i, tp := range listTopic {
+		if tp.Name == name {
+			return i
+		}
+	}
+	return -1
+}
+
 func PublishToTopic(topic Topic, message messqueue.Message){
 	messqueue.PutMessage(message)
 }
 
-func Subscribe(topic Topic) messqueue.Message{
-	message := <- topic.MessQueue
-	message = message.(messqueue.Message)
-	return message
-}
+//func Subscribe(topic Topic) messqueue.Message{
+//	message := <- topic.MessQueue
+//	message = message.(messqueue.Message)
+//	return message
+//}
