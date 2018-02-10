@@ -26,11 +26,11 @@ func GetIndexTopic(name int, listTopic []Topic) int {
 }
 
 func PublishToTopic(topic Topic, message messqueue.Message){
-	messqueue.PutMessage(message)
+	messqueue.PutMessageToTopic(message, topic.MessQueue)
 }
 
-//func Subscribe(topic Topic) messqueue.Message{
-//	message := <- topic.MessQueue
-//	message = message.(messqueue.Message)
-//	return message
-//}
+func Subscribe(topic Topic) messqueue.Message{
+	message := <- topic.MessQueue
+	mess := message.(messqueue.Message)
+	return mess
+}

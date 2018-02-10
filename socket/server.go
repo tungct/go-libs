@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"github.com/tungct/go-libs/messqueue"
 	"github.com/tungct/go-libs/Topic"
+	"strconv"
 )
 
 var Topics [] Topic.Topic
@@ -16,18 +17,33 @@ func HandleConnection(conn net.Conn) {
 	mess := &messqueue.Message{}
 	dec.Decode(mess)
 
-	indexTopic := Topic.GetIndexTopic(mess.Status, Topics)
+	if mess.Status == 1{
+		conn.Write([]byte("OK"))
+		fmt.Printf("Received : %+v", mess);
+		conn.Close()
+	}else if mess.Status == 2{
+		indexTopic := Topic.GetIndexTopic(mess.Status, Topics)
 
-	if indexTopic == -1{
-		topic := Topic.InitTopic(mess.Status, 10)
-		Topics = append(Topics, topic)
-	}else{
-		Topics[indexTopic].MessQueue <- mess
+		if indexTopic == -1{
+			topic := Topic.InitTopic(mess.Status, 10)
+			Topic.PublishToTopic(topic, *mess)
+			Topics = append(Topics, topic)
+		}else{
+			Topic.PublishToTopic(Topics[indexTopic], *mess)
+		}
+		fmt.Println(len(Topics))
+		conn.Write([]byte("Success"))
+		fmt.Printf("Received : %+v", mess);
+		conn.Close()
+	}else if mess.Status == 3{
+		topicName, _ := strconv.Atoi(mess.Content)
+		indexTopic := Topic.GetIndexTopic(topicName, Topics)
+		messResponse := Topic.Subscribe(Topics[indexTopic])
+		encoder := gob.NewEncoder(conn)
+		encoder.Encode(messResponse)
+		conn.Close()
+		return
 	}
-	fmt.Println(len(Topics))
-	conn.Write([]byte("OK"))
-	fmt.Printf("Received : %+v", mess);
-	conn.Close()
 }
 
 func main() {
