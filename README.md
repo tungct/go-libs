@@ -7,11 +7,12 @@ Server nhận Request message (POST), đẩy message vào MessageQueue chờ x�
 
 ## 2. Hướng dẫn
 
+### 2.1 WorkerPool & RuleEngine
 Cấu trúc MessageQueue và WorkerPool 
 
 ![architecture introduction diagram](image/msq.png)
 
-### 2.1 Định nghĩa MessageQueue
+#### 2.1.1 Định nghĩa MessageQueue
 go-messqueue.go:
 
 ```
@@ -36,7 +37,7 @@ func PutMessage(message Message) {
 
 ```
 
-### 2.2 Định nghĩa WorkerPool
+#### 2.1.2 Định nghĩa WorkerPool
 
 workerpool.go
 
@@ -55,7 +56,7 @@ func CallWorker(idWoker int){
 
 ```
 
-### 2.3 Cấu trúc Rule_Engine
+#### 2.1.3 Cấu trúc Rule_Engine
 
 rule_engine.go
 
@@ -109,7 +110,7 @@ func WriteNewFile(idWorker int, message messqueue.Message) bool{
 
 ```
 
-### 2.4 Server
+#### 2.1.4 Server
 
 server/server.go
 
@@ -151,7 +152,7 @@ func main() {
 
 ```
 
-### 2.5 Chạy chương trình
+#### 2.1.5 Chạy chương trình
 
 Để chạy chương trình, vào thư mục $GOPATH/src/github.com/tungct/go-libs
 
@@ -165,7 +166,7 @@ Call REST API với phương thức POST
 ```
 curl -X POST -d '{"status":1,"content":"test"}' http://127.0.0.1:8000/message
 ```
-### 2.6 Test Performance bằng go-wrk
+#### 2.1.6 Test Performance bằng go-wrk
 
 - https://github.com/tsliwowicz/go-wrk
 
@@ -235,3 +236,7 @@ Slowest Request:	12.811064ms
 Number of Errors:	0
 
 ```
+### 2.2 Publish & Subscribe 
+Cấu trúc MessageQueue và WorkerPool 
+
+![architecture introduction diagram](image/publish_subscribe.jpg)
