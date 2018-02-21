@@ -11,6 +11,7 @@ type Topic struct {
 	MessQueue messqueue.MessQueue
 }
 
+// classifer message to many topic
 func RuleTopic(mess messqueue.Message) string{
 	var topicName string
 	if strings.Contains(mess.Content, "Message"){

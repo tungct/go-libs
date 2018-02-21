@@ -27,7 +27,6 @@ func CreateMessage(status int, content string) Message{
 	return message
 }
 
-
 func InitQueue(len int)(msQ chan interface{}){
 	MessQueue := make(chan interface{}, len)
 	return MessQueue
