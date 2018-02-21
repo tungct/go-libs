@@ -2,7 +2,6 @@ package messqueue
 
 import (
 	"fmt"
-	"strconv"
 )
 
 type Message struct {
@@ -10,31 +9,24 @@ type Message struct {
 	Content   string
 }
 
+const InitConnectStatus = 1
+const PublishStatus = 2
+const SubscribeStatus = 3
+const NilMessageStatus = -1
+
 var MaxLenQueue int = 600
+
 // Message Queue
 type MessQueue chan(interface{})
 var Queue MessQueue
 
-func InitMessage() Message{
+func CreateMessage(status int, content string) Message{
 	var message Message
-	message.Status = 1
-	message.Content = "Init"
+	message.Status = status
+	message.Content = content
 	return message
 }
 
-func PublishMessage() Message{
-	var message Message
-	message.Status = 2
-	message.Content = "Message"
-	return message
-}
-
-func SubscribeMessage(topicName int) Message{
-	var message Message
-	message.Status = 3
-	message.Content = strconv.Itoa(topicName)
-	return message
-}
 
 func InitQueue(len int)(msQ chan interface{}){
 	MessQueue := make(chan interface{}, len)

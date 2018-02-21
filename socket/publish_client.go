@@ -22,7 +22,9 @@ func InitConn(ip string, port int) bool{
 		return false
 	}
 	encoder := gob.NewEncoder(conn)
-	mess := messqueue.InitMessage()
+
+	// Init connect to server
+	mess := messqueue.CreateMessage(messqueue.InitConnectStatus, "Init")
 	encoder.Encode(mess)
 	buff := make([]byte, 1024)
 	n, _ := conn.Read(buff)
@@ -42,7 +44,9 @@ func SendMess(ip string, port int){
 		log.Fatal("Connection error", err)
 	}
 	encoder := gob.NewEncoder(conn)
-	mess := messqueue.PublishMessage()
+
+	// Publish message
+	mess := messqueue.CreateMessage(messqueue.PublishStatus, "Message")
 	encoder.Encode(mess)
 	buff := make([]byte, 1024)
 	n, _ := conn.Read(buff)

@@ -10,14 +10,16 @@ import (
 	"github.com/tungct/go-libs/messqueue"
 )
 
-func GetMess(ip string, port int, topicName int){
+func GetMess(ip string, port int, topicName string){
 	addr := strings.Join([]string{ip, strconv.Itoa(port)}, ":")
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		log.Fatal("Connection error", err)
 	}
 	encoder := gob.NewEncoder(conn)
-	mess := messqueue.SubscribeMessage(topicName)
+
+	// subscribe topic with topicName
+	mess := messqueue.CreateMessage(messqueue.SubscribeStatus, topicName)
 	encoder.Encode(mess)
 	dec := gob.NewDecoder(conn)
 	messRes := &messqueue.Message{}
@@ -32,5 +34,5 @@ func main() {
 		port = 8080
 	)
 	fmt.Println("start client");
-	GetMess(ip, port, 2)
+	GetMess(ip, port, "Message")
 }

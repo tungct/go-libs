@@ -2,21 +2,39 @@ package Topic
 
 import (
 	"github.com/tungct/go-libs/messqueue"
+	"strings"
+	"fmt"
 )
 
 type Topic struct {
-	Name int
+	Name string
 	MessQueue messqueue.MessQueue
 }
 
-func InitTopic(name int, len int) Topic{
+func RuleTopic(mess messqueue.Message) string{
+	var topicName string
+	if strings.Contains(mess.Content, "Message"){
+		topicName = "Message"
+	}else {
+		topicName = "other"
+	}
+	return topicName
+}
+
+func PrintTopic(listTopic []Topic) {
+	for _, tp := range listTopic{
+		fmt.Println(tp.Name)
+	}
+}
+
+func InitTopic(name string, len int) Topic{
 	var topic Topic
 	topic.Name = name
 	topic.MessQueue = messqueue.InitQueue(len)
 	return topic
 }
 
-func GetIndexTopic(name int, listTopic []Topic) int {
+func GetIndexTopic(name string, listTopic []Topic) int {
 	for i, tp := range listTopic {
 		if tp.Name == name {
 			return i
