@@ -1,8 +1,7 @@
 # go-libs
 
 - WorkerPool & RuleEngine : Server nhận Request message (POST), đẩy message vào MessageQueue chờ xử lý, WorkerPool thực hiện xử lý message trong queue và tuân theo Rule_Engine để chờ có các action tương ứng
-- Publish & Subscribe : (TCP/IP Socket)Server nhận message từ publisher và đẩy vào topic tương ứng, subscriber gửi yêu cầu đến server lấy phần tử trong topic mong m
-uốn
+- Publish & Subscribe : (TCP/IP Socket) Server nhận message từ publisher và đẩy vào topic tương ứng, subscriber gửi yêu cầu đến server lấy phần tử trong topic mong muốn
 
 ## 1. Yêu cầu
 - Go 1.9 hoặc thấp hơn, ubuntu 16.04
@@ -249,6 +248,8 @@ Kiến trúc trong chương trình
 
 #### 2.2.1 Định nghĩa Message 
 
+Message được chuyển qua socket giữa server và client nhằm khởi tạo connect, publish, subscribe hay báo lỗi với trường status tương ứng
+
 messqueue/messqueue.go:
 
 ```
@@ -257,6 +258,10 @@ const PublishStatus = 2
 const SubscribeStatus = 3
 const NilMessageStatus = -1
 
+type Message struct {
+	Status int // status field to check rule
+	Content   string
+}
 
 func CreateMessage(status int, content string) Message{
 	var message Message
@@ -278,6 +283,9 @@ func PutMessageToTopic(message Message, queue MessQueue){
 ```
 
 #### 2.2.2 Định nghĩa topic 
+
+Message sẽ được server đưa vào các Topic tương ứng
+
 topic/topic.go:
 
 ```
@@ -425,7 +433,11 @@ func main() {
 
 
 ```
+Server listion at port 8080
+
 #### 2.2.4 Publisher 
+
+Khởi tạo connect và gửi message đến server
 
 socket/publish_client.go:
 
@@ -492,6 +504,8 @@ func main() {
 ```
 
 #### 2.2.5 Subscriber 
+
+Gửi message để lấy message trong topic mong muốn
 
 socket/subscribe_client.go
 
