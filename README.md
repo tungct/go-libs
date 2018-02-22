@@ -306,9 +306,11 @@ func RuleTopic(mess messqueue.Message) string{
 }
 
 func PrintTopic(listTopic []Topic) {
+	fmt.Println("List Topics : ")
 	for _, tp := range listTopic{
-		fmt.Println(tp.Name)
+		InfoTopic(tp)
 	}
+	fmt.Println("---------------------")
 }
 
 func InitTopic(name string, len int) Topic{
@@ -316,6 +318,11 @@ func InitTopic(name string, len int) Topic{
 	topic.Name = name
 	topic.MessQueue = messqueue.InitQueue(len)
 	return topic
+}
+
+func InfoTopic(topic Topic){
+	fmt.Println("Name topic : ", topic.Name)
+	fmt.Println("Lenght messQueue of topic : ", len(topic.MessQueue))
 }
 
 func GetIndexTopic(name string, listTopic []Topic) int {
@@ -328,7 +335,7 @@ func GetIndexTopic(name string, listTopic []Topic) int {
 }
 
 func PublishToTopic(topic Topic, message messqueue.Message){
-	messqueue.PutMessageToTopic(message, topic.MessQueue)
+	messqueue.PutMessageToTopic(message, topic.MessQueue, topic.Name)
 }
 
 func Subscribe(topic Topic) (succ bool, ms messqueue.Message){
@@ -358,11 +365,11 @@ func HandleConnection(conn net.Conn) {
 	dec := gob.NewDecoder(conn)
 	mess := &messqueue.Message{}
 	dec.Decode(mess)
+	fmt.Printf("Received : %+v \n", mess);
 
 	// status 1 : Init connect
 	if mess.Status == 1{
 		conn.Write([]byte("OK"))
-		fmt.Printf("Received : %+v \n", mess);
 		conn.Close()
 
 	// status 2 : Publish message
@@ -378,9 +385,7 @@ func HandleConnection(conn net.Conn) {
 		}else{
 			Topic.PublishToTopic(Topics[indexTopic], *mess)
 		}
-		Topic.PrintTopic(Topics)
 		conn.Write([]byte("Success"))
-		fmt.Printf("Received : %+v \n", mess);
 		conn.Close()
 
 	// status 3 : Subscribe message
@@ -411,8 +416,9 @@ func HandleConnection(conn net.Conn) {
 			conn.Close()
 		}
 		fmt.Println("Subscribe Topic ", topicName)
-		return
 	}
+	Topic.PrintTopic(Topics)
+	return
 }
 
 func main() {
@@ -430,7 +436,6 @@ func main() {
 		go HandleConnection(conn) // a goroutine handles conn so that the loop can accept other connections
 	}
 }
-
 
 ```
 Server listion at port 8080
@@ -519,13 +524,14 @@ func GetMess(ip string, port int, topicName string){
 	encoder := gob.NewEncoder(conn)
 
 	// subscribe topic with topicName
+	fmt.Println("Subscribe topic : ", topicName)
 	mess := messqueue.CreateMessage(messqueue.SubscribeStatus, topicName)
 	encoder.Encode(mess)
 	dec := gob.NewDecoder(conn)
 	messRes := &messqueue.Message{}
 	dec.Decode(messRes)
 	conn.Close()
-	fmt.Println(messRes);
+	fmt.Println("Received message : ", messRes);
 }
 
 func main() {
@@ -533,9 +539,10 @@ func main() {
 		ip   = "127.0.0.1"
 		port = 8080
 	)
-	fmt.Println("start client");
+	fmt.Println("subscribe client");
 	GetMess(ip, port, "Message")
 }
+
 ```
 
 
