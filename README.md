@@ -245,7 +245,7 @@ Kiến trúc chung Publish & Subscribe
 
 Kiến trúc trong chương trình
 
-![architecture introduction diagram](image/socket_pubsub.jpg)
+![architecture introduction diagram](image/pubsub.png)
 
 #### 2.2.1 Định nghĩa Message 
 
