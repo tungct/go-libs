@@ -42,10 +42,10 @@ func PutMessage(message Message) {
 	}
 }
 
-func PutMessageToTopic(message Message, queue MessQueue){
+func PutMessageToTopic(message Message, queue MessQueue, topicName string){
 	if len(queue) < 10{
 		queue <- message
-		fmt.Println("Lenght Queue : ", len(queue))
+		fmt.Println("Pushed message to Topic ", topicName)
 	}else {
 		fmt.Println("Full Queue")
 	}

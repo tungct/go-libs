@@ -23,9 +23,11 @@ func RuleTopic(mess messqueue.Message) string{
 }
 
 func PrintTopic(listTopic []Topic) {
+	fmt.Println("List Topics : ")
 	for _, tp := range listTopic{
-		fmt.Println(tp.Name)
+		InfoTopic(tp)
 	}
+	fmt.Println("---------------------")
 }
 
 func InitTopic(name string, len int) Topic{
@@ -33,6 +35,11 @@ func InitTopic(name string, len int) Topic{
 	topic.Name = name
 	topic.MessQueue = messqueue.InitQueue(len)
 	return topic
+}
+
+func InfoTopic(topic Topic){
+	fmt.Println("Name topic : ", topic.Name)
+	fmt.Println("Lenght messQueue of topic : ", len(topic.MessQueue))
 }
 
 func GetIndexTopic(name string, listTopic []Topic) int {
@@ -45,7 +52,7 @@ func GetIndexTopic(name string, listTopic []Topic) int {
 }
 
 func PublishToTopic(topic Topic, message messqueue.Message){
-	messqueue.PutMessageToTopic(message, topic.MessQueue)
+	messqueue.PutMessageToTopic(message, topic.MessQueue, topic.Name)
 }
 
 func Subscribe(topic Topic) (succ bool, ms messqueue.Message){

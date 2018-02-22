@@ -46,7 +46,7 @@ func SendMess(ip string, port int){
 	encoder := gob.NewEncoder(conn)
 
 	// Publish message
-	mess := messqueue.CreateMessage(messqueue.PublishStatus, "Message")
+	mess := messqueue.CreateMessage(messqueue.PublishStatus, "Test")
 	encoder.Encode(mess)
 	buff := make([]byte, 1024)
 	n, _ := conn.Read(buff)

@@ -19,13 +19,14 @@ func GetMess(ip string, port int, topicName string){
 	encoder := gob.NewEncoder(conn)
 
 	// subscribe topic with topicName
+	fmt.Println("Subscribe topic : ", topicName)
 	mess := messqueue.CreateMessage(messqueue.SubscribeStatus, topicName)
 	encoder.Encode(mess)
 	dec := gob.NewDecoder(conn)
 	messRes := &messqueue.Message{}
 	dec.Decode(messRes)
 	conn.Close()
-	fmt.Println(messRes);
+	fmt.Println("Received message : ", messRes);
 }
 
 func main() {
@@ -33,6 +34,6 @@ func main() {
 		ip   = "127.0.0.1"
 		port = 8080
 	)
-	fmt.Println("start client");
+	fmt.Println("subscribe client");
 	GetMess(ip, port, "Message")
 }

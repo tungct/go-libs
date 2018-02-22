@@ -17,11 +17,11 @@ func HandleConnection(conn net.Conn) {
 	dec := gob.NewDecoder(conn)
 	mess := &messqueue.Message{}
 	dec.Decode(mess)
+	fmt.Printf("Received : %+v \n", mess);
 
 	// status 1 : Init connect
 	if mess.Status == 1{
 		conn.Write([]byte("OK"))
-		fmt.Printf("Received : %+v \n", mess);
 		conn.Close()
 
 	// status 2 : Publish message
@@ -37,9 +37,7 @@ func HandleConnection(conn net.Conn) {
 		}else{
 			Topic.PublishToTopic(Topics[indexTopic], *mess)
 		}
-		Topic.PrintTopic(Topics)
 		conn.Write([]byte("Success"))
-		fmt.Printf("Received : %+v \n", mess);
 		conn.Close()
 
 	// status 3 : Subscribe message
@@ -70,8 +68,9 @@ func HandleConnection(conn net.Conn) {
 			conn.Close()
 		}
 		fmt.Println("Subscribe Topic ", topicName)
-		return
 	}
+	Topic.PrintTopic(Topics)
+	return
 }
 
 func main() {
