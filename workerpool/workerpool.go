@@ -5,10 +5,12 @@ import (
 	"github.com/tungct/go-libs/rule_engine"
 )
 
+// lenght worker in pool
 var MaxLenWorker int = 10
 // Worker pool
 var Worker chan(int)
 
+// call a worker in workerpool to execute a message by rule
 func CallWorker(idWoker int){
 	message := <-messqueue.Queue
 	rule_engine.RuleSys(idWoker, message.(messqueue.Message))

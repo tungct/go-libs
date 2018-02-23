@@ -10,6 +10,7 @@ import (
 	"github.com/tungct/go-libs/messqueue"
 )
 
+// send subscribe message to server and get message response
 func GetMess(ip string, port int, topicName string){
 	addr := strings.Join([]string{ip, strconv.Itoa(port)}, ":")
 	conn, err := net.Dial("tcp", addr)

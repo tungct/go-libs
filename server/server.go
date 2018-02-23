@@ -10,6 +10,7 @@ import (
 	"github.com/tungct/go-libs/workerpool"
 )
 
+// server receive message from client and execute
 func RecMessage(rw http.ResponseWriter, request *http.Request) {
 	decoder := json.NewDecoder(request.Body)
 
@@ -24,6 +25,8 @@ func RecMessage(rw http.ResponseWriter, request *http.Request) {
 
 
 func main() {
+
+	// init message queue and workerpool
 	messqueue.Queue = messqueue.InitQueue(messqueue.MaxLenQueue)
 	workerpool.Worker = make(chan int, workerpool.MaxLenWorker)
 

@@ -20,6 +20,7 @@ var MaxLenQueue int = 600
 type MessQueue chan(interface{})
 var Queue MessQueue
 
+// create new message
 func CreateMessage(status int, content string) Message{
 	var message Message
 	message.Status = status
@@ -27,6 +28,7 @@ func CreateMessage(status int, content string) Message{
 	return message
 }
 
+// create new queue
 func InitQueue(len int)(msQ chan interface{}){
 	MessQueue := make(chan interface{}, len)
 	return MessQueue
@@ -42,6 +44,7 @@ func PutMessage(message Message) {
 	}
 }
 
+// put message from publish to topic
 func PutMessageToTopic(message Message, queue MessQueue, topicName string){
 	if len(queue) < 10{
 		queue <- message

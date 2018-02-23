@@ -12,7 +12,7 @@ var Topics [] Topic.Topic
 
 const lenTopic = 10
 
-
+// Server handle connection from client
 func HandleConnection(conn net.Conn) {
 	dec := gob.NewDecoder(conn)
 	mess := &messqueue.Message{}

@@ -10,10 +10,12 @@ import (
 	"strconv"
 )
 
+// convert bytes array to string
 func BytesToString(data []byte) string {
 	return string(data[:])
 }
 
+// init connection to server
 func InitConn(ip string, port int) bool{
 	addr := strings.Join([]string{ip, strconv.Itoa(port)}, ":")
 	conn, err := net.Dial("tcp", addr)
@@ -37,6 +39,7 @@ func InitConn(ip string, port int) bool{
 	return true
 }
 
+// send publish message to server
 func SendMess(ip string, port int){
 	addr := strings.Join([]string{ip, strconv.Itoa(port)}, ":")
 	conn, err := net.Dial("tcp", addr)

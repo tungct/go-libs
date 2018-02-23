@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// Rule
+// Rule to classifer message by status
 func RuleSys(idWoker int, message messqueue.Message){
 	if message.Status == 1{
 		fmt.Println("1")
@@ -23,6 +23,7 @@ func RuleSys(idWoker int, message messqueue.Message){
 	}
 }
 
+// write message to file by append method
 func WriteAppendFile(idWorker int, message messqueue.Message) bool{
 	fmt.Println("Worker ", idWorker, " execute Message write append file")
 
@@ -44,6 +45,7 @@ func WriteAppendFile(idWorker int, message messqueue.Message) bool{
 	return false
 }
 
+// write message to new json file
 func WriteNewFile(idWorker int, message messqueue.Message) bool{
 	fmt.Println("Worker ", idWorker ," execute Message write new file")
 
