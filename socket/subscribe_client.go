@@ -23,8 +23,9 @@ func GetMess(ip string, port int, topicName string){
 	mess := messqueue.CreateMessage(messqueue.SubscribeStatus, topicName)
 	encoder := gob.NewEncoder(conn)
 	encoder.Encode(mess)
-	messRes := &messqueue.Message{}
+
 	for {
+		messRes := &messqueue.Message{}
 		dec := gob.NewDecoder(conn)
 		err = dec.Decode(messRes)
 		if err != nil{

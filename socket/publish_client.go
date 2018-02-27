@@ -50,7 +50,7 @@ func SendMess(ip string, port int){
 		log.Fatal("Connection error", err)
 	}
 
-	// Publish message
+	// Publish 3 message
 	for i:= 0;i<3;i++ {
 		encoder := gob.NewEncoder(conn)
 		mess := messqueue.CreateMessage(messqueue.PublishStatus, strconv.Itoa(i))

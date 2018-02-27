@@ -98,11 +98,11 @@ func HandleConnection(conn net.Conn) {
 	//_ = conn.(*net.TCPConn).SetKeepAlive(true)
 	dec := gob.NewDecoder(conn)
 	mess := &messqueue.Message{}
-
-	// keep listen message from this connect client
 	dec.Decode(mess)
-
 	fmt.Printf("Received : %+v \n", mess);
+
+	// Status 2 : publish message
+	// if client is publisher
 	if mess.Status == 2 {
 		topicName := Topic.RuleTopic(*mess)
 		indexTopic := Topic.GetIndexTopic(topicName, Topics)
@@ -117,10 +117,13 @@ func HandleConnection(conn net.Conn) {
 		}
 		conn.Write([]byte("Success"))
 		Topic.PrintTopic(Topics)
+
+		// keep listen message from this client
 		for {
 			dec = gob.NewDecoder(conn)
 			err := dec.Decode(mess)
 
+			//if client closed connect, break keep listen
 			if err != nil {
 				break
 			}
@@ -135,7 +138,10 @@ func HandleConnection(conn net.Conn) {
 			} else {
 				Topic.PublishToTopic(Topics[indexTopic], *mess)
 			}
+
+			// send message success to client
 			conn.Write([]byte("Success"))
+
 			Topic.PrintTopic(Topics)
 			defer conn.Close()
 		}
