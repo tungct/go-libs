@@ -3,20 +3,26 @@ package workerpool
 import (
 	"github.com/tungct/go-libs/messqueue"
 	"github.com/tungct/go-libs/rule_engine"
+	"fmt"
+	"time"
 )
 
 // lenght worker in pool
-var MaxLenWorker int = 10
+var MaxLenWorker int = 1
 // Worker pool
 var Worker chan(int)
 
 // call a worker in workerpool to execute a message by rule
 func CallWorker(idWoker int){
 	message := <-messqueue.Queue
+	t1:= time.Now().UnixNano()
 	rule_engine.RuleSys(idWoker, message.(messqueue.Message))
 
 	//return worker to pool
 	Worker <- idWoker
+	t2 := time.Now().UnixNano()
+	t := t2-t1
+	fmt.Println(t / 1000)
 }
 
 //func WriteToDisk(id int) bool{

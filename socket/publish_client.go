@@ -8,6 +8,7 @@ import (
 	"github.com/tungct/go-libs/messqueue"
 	"strings"
 	"strconv"
+	"time"
 )
 
 // convert bytes array to string
@@ -42,18 +43,23 @@ func InitConn(ip string, port int) bool{
 // send publish message to server
 func SendMess(ip string, port int){
 	addr := strings.Join([]string{ip, strconv.Itoa(port)}, ":")
-	conn, err := net.Dial("tcp", addr)
+	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
+	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+	//conn.SetKeepAlive(true)
 	if err != nil {
 		log.Fatal("Connection error", err)
 	}
-	encoder := gob.NewEncoder(conn)
 
 	// Publish message
-	mess := messqueue.CreateMessage(messqueue.PublishStatus, "Test")
-	encoder.Encode(mess)
-	buff := make([]byte, 1024)
-	n, _ := conn.Read(buff)
-	log.Printf("Receive: %s", buff[:n])
+	for i:= 0;i<3;i++ {
+		encoder := gob.NewEncoder(conn)
+		mess := messqueue.CreateMessage(messqueue.PublishStatus, strconv.Itoa(i))
+		encoder.Encode(mess)
+		buff := make([]byte, 1024)
+		n, _ := conn.Read(buff)
+		log.Printf("Receive: %s", buff[:n])
+		time.Sleep(1*time.Second)
+	}
 	conn.Close()
 	fmt.Println("done");
 }
@@ -66,7 +72,7 @@ func main() {
 		port = 8080
 	)
 	fmt.Println("start client");
-	succ := InitConn(ip, port)
+	succ := true
 	if succ == true{
 		SendMess(ip, port)
 	}
