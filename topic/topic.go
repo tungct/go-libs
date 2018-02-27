@@ -1,4 +1,4 @@
-package Topic
+package topic
 
 import (
 	"github.com/tungct/go-libs/messqueue"

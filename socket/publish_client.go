@@ -45,14 +45,13 @@ func SendMess(ip string, port int){
 	addr := strings.Join([]string{ip, strconv.Itoa(port)}, ":")
 	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
-	//conn.SetKeepAlive(true)
 	if err != nil {
 		log.Fatal("Connection error", err)
 	}
 
 	// Publish 3 message
+	encoder := gob.NewEncoder(conn)
 	for i:= 0;i<3;i++ {
-		encoder := gob.NewEncoder(conn)
 		mess := messqueue.CreateMessage(messqueue.PublishStatus, strconv.Itoa(i))
 		encoder.Encode(mess)
 		buff := make([]byte, 1024)

@@ -20,13 +20,19 @@ func GetMess(ip string, port int, topicName string){
 
 	// subscribe topic with topicName
 	fmt.Println("Subscribe topic : ", topicName)
+
+	// create subscribe message send to server
 	mess := messqueue.CreateMessage(messqueue.SubscribeStatus, topicName)
+
+	// init encoder to send data to server
 	encoder := gob.NewEncoder(conn)
 	encoder.Encode(mess)
 
+	// init decoder to read data from server response
+	dec := gob.NewDecoder(conn)
+
 	for {
 		messRes := &messqueue.Message{}
-		dec := gob.NewDecoder(conn)
 		err = dec.Decode(messRes)
 		if err != nil{
 			log.Fatal(err)
