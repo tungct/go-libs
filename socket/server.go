@@ -6,7 +6,7 @@ import (
 	"encoding/gob"
 	"github.com/tungct/go-libs/messqueue"
 	"github.com/tungct/go-libs/topic"
-	"log"
+	"time"
 )
 
 var	 Topics [] topic.Topic
@@ -15,7 +15,7 @@ const lenTopic = 10
 
 // Server handle connection from client
 func HandleConnection(conn net.Conn) {
-
+	conn.SetWriteDeadline(time.Now().Add(10*time.Second))
 	dec := gob.NewDecoder(conn)
 	mess := &messqueue.Message{}
 	dec.Decode(mess)
@@ -61,6 +61,7 @@ func HandleConnection(conn net.Conn) {
 		var messResponse messqueue.Message
 
 		topicName := topic.RuleTopic(*mess)
+		fmt.Println("Subscribe Topic ", topicName)
 		indexTopic := topic.GetIndexTopic(topicName, Topics)
 
 		// init encode to send message to client
@@ -71,10 +72,19 @@ func HandleConnection(conn net.Conn) {
 				fmt.Println("Message send to subscriber : ", messResponse)
 				er := encoder.Encode(messResponse)
 				if er != nil{
-					log.Fatal(er)
+					topic.PublishToTopic(Topics[indexTopic], messResponse)
+					//log.Fatal(er)
 					break
 				}
-				fmt.Println("Subscribe Topic ", topicName)
+
+				// listen message return from client after send success
+				er = dec.Decode(mess)
+				if er != nil{
+					topic.PublishToTopic(Topics[indexTopic], messResponse)
+					//log.Fatal(er)
+					break
+				}
+
 				topic.PrintTopic(Topics)
 			} else {
 				continue
@@ -83,8 +93,6 @@ func HandleConnection(conn net.Conn) {
 		}
 		defer conn.Close()
 	}
-
-	return
 }
 
 func main() {
