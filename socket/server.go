@@ -9,10 +9,15 @@ import (
 	"sync"
 )
 
+type sub struct {
+	encode *gob.Encoder
+	decode *gob.Decoder
+}
 var mutex = &sync.Mutex{}
 var	 Topics [] topic.Topic
-var subs [] net.Conn
-var sub map[string] int
+var sbs chan sub
+var subs [] sub
+var wrk chan int
 
 // Server handle connection from client
 func HandleConnection(conn net.Conn) {
@@ -59,68 +64,118 @@ func HandleConnection(conn net.Conn) {
 		}
 		// status 3 : Subscribe message
 	}else if mess.Status == 3{
-
-		subs = append(subs, conn)
-
-		var messResponse messqueue.Message
-
-		topicName := mess.Content
-
-		fmt.Println("Subscribe Topic ", topicName)
-		indexTopic := topic.GetIndexTopic(topicName, Topics)
-		if indexTopic == -1 {
-			tp := topic.InitTopic(topicName, messqueue.LenTopic)
-			Topics = append(Topics, tp)
-			indexTopic = topic.GetIndexTopic(topicName, Topics)
-		}
-
+		encoder := gob.NewEncoder(conn)
 		mutex.Lock()
-		if sub[topicName] >= 1{
-			sub[topicName] = sub[topicName] + 1
-		}else {
-			sub[topicName] = 1
-		}
+		sub := sub{encoder, dec}
+		subs = append(subs, sub)
 		mutex.Unlock()
 
-		// init encode to send message to client
-		encoder := gob.NewEncoder(conn)
-		for {
-			if len(Topics[indexTopic].MessQueue) != 0 {
-				_, messResponse = topic.Subscribe(Topics[indexTopic])
-				fmt.Println("Message send to subscriber : ", messResponse)
-				er := encoder.Encode(messResponse)
-				if er != nil{
-					fmt.Println("Connect fail, return message to topic")
-					topic.PublishToTopic(Topics[indexTopic], messResponse)
-					//log.Fatal(er)
-					break
-				}
-				er = dec.Decode(mess)
-				if er != nil{
-					fmt.Println("Connect fail, return message to topic")
-					topic.PublishToTopic(Topics[indexTopic], messResponse)
-					//log.Fatal(er)
-					break
-				}
+		//mutex.Lock()
+		//encoder := gob.NewEncoder(conn)
+		//subs = append(subs, encoder)
+		//mutex.Unlock()
 
-				// listen message return from client after send success
-
-
-				topic.PrintTopic(Topics)
-			} else {
-				continue
-			}
-
-		}
-		defer conn.Close()
+		//var messResponse messqueue.Message
+		//
+		//topicName := mess.Content
+		//
+		//fmt.Println("Subscribe Topic ", topicName)
+		//indexTopic := topic.GetIndexTopic(topicName, Topics)
+		//if indexTopic == -1 {
+		//	tp := topic.InitTopic(topicName, messqueue.LenTopic)
+		//	Topics = append(Topics, tp)
+		//	indexTopic = topic.GetIndexTopic(topicName, Topics)
+		//}
+		//
+		//mutex.Lock()
+		//if sub[topicName] >= 1{
+		//	sub[topicName] = sub[topicName] + 1
+		//}else {
+		//	sub[topicName] = 1
+		//}
+		//mutex.Unlock()
+		//
+		//// init encode to send message to client
+		//encoder := gob.NewEncoder(conn)
+		//for {
+		//	if len(Topics[indexTopic].MessQueue) != 0 {
+		//		_, messResponse = topic.Subscribe(Topics[indexTopic])
+		//		fmt.Println("Message send to subscriber : ", messResponse)
+		//		er := encoder.Encode(messResponse)
+		//		if er != nil{
+		//			fmt.Println("Connect fail, return message to topic")
+		//			topic.PublishToTopic(Topics[indexTopic], messResponse)
+		//			//log.Fatal(er)
+		//			break
+		//		}
+		//		er = dec.Decode(mess)
+		//		if er != nil{
+		//			fmt.Println("Connect fail, return message to topic")
+		//			topic.PublishToTopic(Topics[indexTopic], messResponse)
+		//			//log.Fatal(er)
+		//			break
+		//		}
+		//
+		//		// listen message return from client after send success
+		//
+		//
+		//		topic.PrintTopic(Topics)
+		//	} else {
+		//		continue
+		//	}
+		//
+		//}
+		//defer conn.Close()
 	}
 }
 
-func BroadCast(){
-	
-	//for _, sub := range subs{
-	//
-	//}
+func removeItemArray(s []sub, index int) []sub {
+	return append(s[:index], s[index+1:]...)
+}
+
+func Subscribe(w int, topicName string){
+	message := &messqueue.Message{}
+	indexTopic := topic.GetIndexTopic(topicName, Topics)
+	if indexTopic == -1 {
+		tp := topic.InitTopic(topicName, messqueue.LenTopic)
+		Topics = append(Topics, tp)
+		indexTopic = topic.GetIndexTopic(topicName, Topics)
+	}
+	if len(subs) >0 {
+		mess := <-Topics[indexTopic].MessQueue
+		for i := 0;i<len(subs);i++{
+			fmt.Println(len(subs))
+			er := subs[i].encode.Encode(mess)
+			if er != nil {
+				fmt.Println(er)
+				fmt.Println("Connect fail, return message to ")
+				if len(subs) >0{
+					subs = removeItemArray(subs, i)
+				}
+				if len(subs) == 0{
+					fmt.Println("3")
+					topic.PublishToTopic(Topics[indexTopic], mess.(messqueue.Message))
+				}
+				break
+			}
+			er = subs[i].decode.Decode(message)
+			fmt.Println(len(subs))
+			if er != nil {
+				fmt.Println(er)
+				fmt.Println("Connect fail, return message to topic")
+				if len(subs) >0{
+					subs = removeItemArray(subs, i)
+				}
+				if len(subs) == 0{
+					fmt.Println("3")
+					topic.PublishToTopic(Topics[indexTopic], mess.(messqueue.Message))
+				}
+				break
+			}
+			topic.PrintTopic(Topics)
+		}
+	}
+	wrk <- w
 }
 
 func main() {
@@ -129,7 +184,19 @@ func main() {
 	if err != nil {
 		// handle error
 	}
-	subs = make(map[string]int)
+
+	sbs = make(chan sub, 10)
+	wrk = make(chan int, 10)
+
+	for id := 1;id < 10;id ++{
+		wrk <- id
+	}
+	go func() {
+		for {
+			w := <-wrk
+			Subscribe(w, "1")
+		}
+	}()
 
 	for {
 		conn, err := ln.Accept() // this blocks until connection or error
@@ -139,7 +206,5 @@ func main() {
 		}
 		go HandleConnection(conn) // a goroutine handles conn so that the loop can accept other connections
 	}
-	go func() {
-		BroadCast()
-	}()
+
 }
