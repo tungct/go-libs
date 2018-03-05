@@ -9,6 +9,8 @@ import (
 	"strings"
 	"strconv"
 	"time"
+	"os"
+	"math/rand"
 )
 
 // convert bytes array to string
@@ -17,9 +19,9 @@ func BytesToString(data []byte) string {
 }
 
 // init connection to server
-func InitConn(conn *net.TCPConn, encoder *gob.Encoder) bool{
+func InitConn(conn *net.TCPConn, encoder *gob.Encoder, topicName string) bool{
 	// Init connect to server
-	mess := messqueue.CreateMessage(messqueue.InitConnectStatus, "Init")
+	mess := messqueue.CreateMessage(messqueue.InitConnectStatus, topicName)
 	encoder.Encode(mess)
 	buff := make([]byte, 1024)
 	n, _ := conn.Read(buff)
@@ -31,7 +33,8 @@ func InitConn(conn *net.TCPConn, encoder *gob.Encoder) bool{
 }
 
 // send publish message to server
-func SendMess(ip string, port int){
+func SendMess(ip string, port int, topicName string){
+	fmt.Println("Publish to topic " + topicName)
 	addr := strings.Join([]string{ip, strconv.Itoa(port)}, ":")
 	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
@@ -44,12 +47,13 @@ func SendMess(ip string, port int){
 	encoder := gob.NewEncoder(conn)
 
 	// init connect to server
-	init := InitConn(conn, encoder)
+	init := InitConn(conn, encoder, topicName)
 
 	// if server accept connect, publish message
 	if init == true {
-		for i := 0; i < 3; i++ {
-			mess := messqueue.CreateMessage(messqueue.PublishStatus, strconv.Itoa(i))
+		for i := 0; i < 7; i++ {
+			content := rand.Intn(100)
+			mess := messqueue.CreateMessage(messqueue.PublishStatus, strconv.Itoa(content))
 			encoder.Encode(mess)
 			buff := make([]byte, 1024)
 			n, _ := conn.Read(buff)
@@ -68,6 +72,7 @@ func main() {
 		ip   = "127.0.0.1"
 		port = 8080
 	)
+	topicName := os.Args[1]
 	fmt.Println("start client");
-	SendMess(ip, port)
+	SendMess(ip, port, topicName)
 }

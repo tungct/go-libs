@@ -8,6 +8,7 @@ import (
 	"log"
 	"encoding/gob"
 	"github.com/tungct/go-libs/messqueue"
+	"os"
 )
 
 // send subscribe message to server and get message response
@@ -34,6 +35,7 @@ func GetMess(ip string, port int, topicName string){
 	dec := gob.NewDecoder(conn)
 
 	for {
+
 		messRes := &messqueue.Message{}
 		err = dec.Decode(messRes)
 		if err != nil{
@@ -45,7 +47,7 @@ func GetMess(ip string, port int, topicName string){
 			log.Fatal(err)
 			break
 		}
-		fmt.Println("Received message : ", messRes)
+		fmt.Println("Received message : ", messRes, "from topic " + topicName)
 	}
 	defer conn.Close()
 }
@@ -55,6 +57,7 @@ func main() {
 		ip   = "127.0.0.1"
 		port = 8080
 	)
+	topicName := os.Args[1]
 	fmt.Println("subscribe client");
-	GetMess(ip, port, "other")
+	GetMess(ip, port, topicName)
 }

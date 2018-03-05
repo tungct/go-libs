@@ -6,16 +6,17 @@ import (
 	"encoding/gob"
 	"github.com/tungct/go-libs/messqueue"
 	"github.com/tungct/go-libs/topic"
-	"time"
+	"sync"
 )
 
+var mutex = &sync.Mutex{}
 var	 Topics [] topic.Topic
-
-const lenTopic = 10
+var subs [] net.Conn
+var sub map[string] int
 
 // Server handle connection from client
 func HandleConnection(conn net.Conn) {
-	conn.SetWriteDeadline(time.Now().Add(10*time.Second))
+
 	dec := gob.NewDecoder(conn)
 	mess := &messqueue.Message{}
 	dec.Decode(mess)
@@ -25,6 +26,15 @@ func HandleConnection(conn net.Conn) {
 	// if client is publisher
 	if mess.Status == 1 {
 		conn.Write([]byte("OK"))
+		topicName := mess.Content
+		indexTopic := topic.GetIndexTopic(topicName, Topics)
+
+		// if topicName is not in topics, create new topic
+		if indexTopic == -1 {
+			tp := topic.InitTopic(topicName, messqueue.LenTopic)
+			Topics = append(Topics, tp)
+			indexTopic = topic.GetIndexTopic(topicName, Topics)
+		}
 		// keep listen message from this client
 		for {
 			//dec = gob.NewDecoder(conn)
@@ -37,17 +47,8 @@ func HandleConnection(conn net.Conn) {
 
 			// Status 2 : if message is publish
 			if mess.Status == 2 {
-				topicName := topic.RuleTopic(*mess)
-				indexTopic := topic.GetIndexTopic(topicName, Topics)
 
-				// if topicName is not in topics, create new topic
-				if indexTopic == -1 {
-					tp := topic.InitTopic(topicName, lenTopic)
-					topic.PublishToTopic(tp, *mess)
-					Topics = append(Topics, tp)
-				} else {
-					topic.PublishToTopic(Topics[indexTopic], *mess)
-				}
+				topic.PublishToTopic(Topics[indexTopic], *mess)
 
 				// send message success to client
 				conn.Write([]byte("Success"))
@@ -58,11 +59,28 @@ func HandleConnection(conn net.Conn) {
 		}
 		// status 3 : Subscribe message
 	}else if mess.Status == 3{
+
+		subs = append(subs, conn)
+
 		var messResponse messqueue.Message
 
-		topicName := topic.RuleTopic(*mess)
+		topicName := mess.Content
+
 		fmt.Println("Subscribe Topic ", topicName)
 		indexTopic := topic.GetIndexTopic(topicName, Topics)
+		if indexTopic == -1 {
+			tp := topic.InitTopic(topicName, messqueue.LenTopic)
+			Topics = append(Topics, tp)
+			indexTopic = topic.GetIndexTopic(topicName, Topics)
+		}
+
+		mutex.Lock()
+		if sub[topicName] >= 1{
+			sub[topicName] = sub[topicName] + 1
+		}else {
+			sub[topicName] = 1
+		}
+		mutex.Unlock()
 
 		// init encode to send message to client
 		encoder := gob.NewEncoder(conn)
@@ -72,18 +90,21 @@ func HandleConnection(conn net.Conn) {
 				fmt.Println("Message send to subscriber : ", messResponse)
 				er := encoder.Encode(messResponse)
 				if er != nil{
+					fmt.Println("Connect fail, return message to topic")
+					topic.PublishToTopic(Topics[indexTopic], messResponse)
+					//log.Fatal(er)
+					break
+				}
+				er = dec.Decode(mess)
+				if er != nil{
+					fmt.Println("Connect fail, return message to topic")
 					topic.PublishToTopic(Topics[indexTopic], messResponse)
 					//log.Fatal(er)
 					break
 				}
 
 				// listen message return from client after send success
-				er = dec.Decode(mess)
-				if er != nil{
-					topic.PublishToTopic(Topics[indexTopic], messResponse)
-					//log.Fatal(er)
-					break
-				}
+
 
 				topic.PrintTopic(Topics)
 			} else {
@@ -95,12 +116,21 @@ func HandleConnection(conn net.Conn) {
 	}
 }
 
+func BroadCast(){
+	
+	//for _, sub := range subs{
+	//
+	//}
+}
+
 func main() {
 	fmt.Println("Server listion at port 8080");
 	ln, err := net.Listen("tcp", ":8080")
 	if err != nil {
 		// handle error
 	}
+	subs = make(map[string]int)
+
 	for {
 		conn, err := ln.Accept() // this blocks until connection or error
 		if err != nil {
@@ -109,4 +139,7 @@ func main() {
 		}
 		go HandleConnection(conn) // a goroutine handles conn so that the loop can accept other connections
 	}
+	go func() {
+		BroadCast()
+	}()
 }

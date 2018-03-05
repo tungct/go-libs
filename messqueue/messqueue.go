@@ -13,6 +13,7 @@ const InitConnectStatus = 1
 const PublishStatus = 2
 const SubscribeStatus = 3
 const NilMessageStatus = -1
+const LenTopic = 20
 
 var MaxLenQueue int = 600
 
@@ -46,7 +47,7 @@ func PutMessage(message Message) {
 
 // put message from publish to topic
 func PutMessageToTopic(message Message, queue MessQueue, topicName string){
-	if len(queue) < 10{
+	if len(queue) < LenTopic{
 		queue <- message
 		fmt.Println("Pushed message to Topic ", topicName)
 	}else {
