@@ -51,7 +51,7 @@ func SendMess(ip string, port int, topicName string){
 
 	// if server accept connect, publish message
 	if init == true {
-		for i := 0; i < 7; i++ {
+		for i := 0; i < 3; i++ {
 			content := rand.Intn(100)
 			mess := messqueue.CreateMessage(messqueue.PublishStatus, strconv.Itoa(content))
 			encoder.Encode(mess)
