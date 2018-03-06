@@ -10,14 +10,20 @@ import (
 
 )
 
+// struct of one connect message with a subscriber
 type sub struct {
-	encode *gob.Encoder
-	decode *gob.Decoder
+	encode *gob.Encoder // write message to subscriber
+	decode *gob.Decoder // read message to subscriber
 }
 
+// all topics in server
 var Topics [] topic.Topic
 var mutex = &sync.Mutex{}
+
+// all topicName
 var topicNames chan string
+
+// all subscriber in one topic
 var subscribers map[string] []sub
 
 // Server handle connection from client
@@ -57,7 +63,6 @@ func HandleConnection(conn net.Conn) {
 			if mess.Status == 2 {
 
 				topic.PublishToTopic(Topics[indexTopic], *mess)
-				fmt.Println(mess)
 
 				// send message success to client
 				conn.Write([]byte("Success"))
@@ -69,8 +74,13 @@ func HandleConnection(conn net.Conn) {
 		// status 3 : Subscribe message
 	}else if mess.Status == 3{
 
+		// get name topic want to subscribe
 		topicName := mess.Content
+
+		// get index topic in topics array
 		indexTopic := topic.GetIndexTopic(topicName, Topics)
+
+		// if this topic not exits
 		if indexTopic == -1 {
 			mutex.Lock()
 			var subs [] sub
@@ -78,10 +88,10 @@ func HandleConnection(conn net.Conn) {
 			mutex.Unlock()
 			tp := topic.InitTopic(topicName, messqueue.LenTopic)
 			Topics = append(Topics, tp)
-			fmt.Println(len(topicNames))
 			topicNames <- topicName
-
 		}
+
+		// send success message to client
 		encoder := gob.NewEncoder(conn)
 		mutex.Lock()
 		sub := sub{encoder, dec}
@@ -147,14 +157,18 @@ func HandleConnection(conn net.Conn) {
 	}
 }
 
+// delete one item in array
 func removeItemArray(s []sub, index int) []sub {
 	return append(s[:index], s[index+1:]...)
 }
 
+// worker to subscribe message to all subscriber this topic
 func Subscribe(topicName string){
 	message := &messqueue.Message{}
 	indexTopic := topic.GetIndexTopic(topicName, Topics)
 	mutex.Lock()
+
+	// get subscribers in this topic
 	allSub := subscribers[topicName]
 	mutex.Unlock()
 
@@ -162,23 +176,28 @@ func Subscribe(topicName string){
 		mess := <-Topics[indexTopic].MessQueue
 		for i := 0;i<len(allSub);i++{
 			er := allSub[i].encode.Encode(mess)
+
+			// if send message to client fail
 			if er != nil {
 				fmt.Println("Connect fail, return message to topic")
 				if len(allSub) == 0{
 					topic.PublishToTopic(Topics[indexTopic], mess.(messqueue.Message))
 				}
 				if len(allSub) >0{
+					// delete conn of client
 					allSub = removeItemArray(allSub, i)
 					i = i-1
 				}
-
 				continue
 			}
+
 			er = allSub[i].decode.Decode(message)
+			// if receive fail message return from client
 			if er != nil {
 				fmt.Println("Connect fail, return message to topic")
 
 				if len(allSub) >0{
+					// delete conn of client
 					allSub = removeItemArray(allSub, i)
 					i = i-1
 				}
@@ -210,7 +229,6 @@ func main() {
 		for {
 			topicName := <- topicNames
 			Subscribe(topicName)
-
 		}
 
 	}()
