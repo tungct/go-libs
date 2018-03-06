@@ -117,7 +117,7 @@ func HandleConnection(conn net.Conn) {
 }
 
 func BroadCast(){
-	
+
 	//for _, sub := range subs{
 	//
 	//}
