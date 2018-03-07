@@ -257,6 +257,9 @@ const InitConnectStatus = 1
 const PublishStatus = 2
 const SubscribeStatus = 3
 const NilMessageStatus = -1
+const LenTopic = 20
+
+var MaxLenQueue int = 600
 
 type Message struct {
 	Status int // status field to check rule
@@ -294,17 +297,7 @@ type Topic struct {
 	MessQueue messqueue.MessQueue
 }
 
-// classifer message to many topic
-func RuleTopic(mess messqueue.Message) string{
-	var topicName string
-	if strings.Contains(mess.Content, "Message"){
-		topicName = "Message"
-	}else {
-		topicName = "other"
-	}
-	return topicName
-}
-
+// print all info topic
 func PrintTopic(listTopic []Topic) {
 	fmt.Println("List Topics : ")
 	for _, tp := range listTopic{
@@ -313,6 +306,7 @@ func PrintTopic(listTopic []Topic) {
 	fmt.Println("---------------------")
 }
 
+// create new topic
 func InitTopic(name string, len int) Topic{
 	var topic Topic
 	topic.Name = name
@@ -320,114 +314,39 @@ func InitTopic(name string, len int) Topic{
 	return topic
 }
 
+// print info of a topic
 func InfoTopic(topic Topic){
 	fmt.Println("Name topic : ", topic.Name)
 	fmt.Println("Lenght messQueue of topic : ", len(topic.MessQueue))
 }
 
+// get index of a topic in topics array
 func GetIndexTopic(name string, listTopic []Topic) int {
 	for i, tp := range listTopic {
 		if tp.Name == name {
 			return i
 		}
 	}
+	// if topicName not in topics, return index -1
 	return -1
 }
 
+// publish a message to a topic
 func PublishToTopic(topic Topic, message messqueue.Message){
 	messqueue.PutMessageToTopic(message, topic.MessQueue, topic.Name)
-}
-
-func Subscribe(topic Topic) (succ bool, ms messqueue.Message){
-	var message interface{}
-	var er bool = false
-	if len(topic.MessQueue )> 0{
-		message = <- topic.MessQueue
-		er = true
-	}
-	mess := message.(messqueue.Message)
-	return er, mess
 }
 
 ```
 
 #### 2.2.3 Server 
 
-socket/server.go
+pub_sub/server.go
+
+Sử dụng goroutine để xử lý độc lập các connect từ client 
 
 ```
-var Topics [] Topic.Topic
-
-const lenTopic = 10
-
-
-func HandleConnection(conn net.Conn) {
-	dec := gob.NewDecoder(conn)
-	mess := &messqueue.Message{}
-	dec.Decode(mess)
-	fmt.Printf("Received : %+v \n", mess);
-
-	// status 1 : Init connect
-	if mess.Status == 1{
-		conn.Write([]byte("OK"))
-		conn.Close()
-
-	// status 2 : Publish message
-	}else if mess.Status == 2{
-		topicName := Topic.RuleTopic(*mess)
-		indexTopic := Topic.GetIndexTopic(topicName, Topics)
-
-		// if topicName is not in topics, create new topic
-		if indexTopic == -1{
-			topic := Topic.InitTopic(topicName, lenTopic)
-			Topic.PublishToTopic(topic, *mess)
-			Topics = append(Topics, topic)
-		}else{
-			Topic.PublishToTopic(Topics[indexTopic], *mess)
-		}
-		conn.Write([]byte("Success"))
-		conn.Close()
-
-	// status 3 : Subscribe message
-	}else if mess.Status == 3{
-		var messResponse messqueue.Message
-		//topicName, _ := strconv.Atoi(mess.Content)
-		topicName := Topic.RuleTopic(*mess)
-		indexTopic := Topic.GetIndexTopic(topicName, Topics)
-
-		// if exits topicName in topics
-		if indexTopic != -1 {
-			// if not message in topic
-			if len(Topics[indexTopic].MessQueue) != 0{
-				_, messResponse = Topic.Subscribe(Topics[indexTopic])
-				encoder := gob.NewEncoder(conn)
-				encoder.Encode(messResponse)
-				conn.Close()
-			}else{
-				messResponse = messqueue.CreateMessage(messqueue.NilMessageStatus, "Not message in topic")
-				encoder := gob.NewEncoder(conn)
-				encoder.Encode(messResponse)
-				conn.Close()
-			}
-		}else {
-			messResponse = messqueue.CreateMessage(messqueue.NilMessageStatus, "Not exits topic")
-			encoder := gob.NewEncoder(conn)
-			encoder.Encode(messResponse)
-			conn.Close()
-		}
-		fmt.Println("Subscribe Topic ", topicName)
-	}
-	Topic.PrintTopic(Topics)
-	return
-}
-
-func main() {
-	fmt.Println("Server listion at port 8080");
-	ln, err := net.Listen("tcp", ":8080")
-	if err != nil {
-		// handle error
-	}
-	for {
+...
+for {
 		conn, err := ln.Accept() // this blocks until connection or error
 		if err != nil {
 			// handle error
@@ -435,33 +354,157 @@ func main() {
 		}
 		go HandleConnection(conn) // a goroutine handles conn so that the loop can accept other connections
 	}
+...
+
+```
+
+Xử lý các connect từ client, nếu message từ publish client, xác nhận topic client mong muốn, nhận message và đẩy vào topic đó
+
+```
+...
+if mess.Status == 1 {
+		conn.Write([]byte("OK"))
+		topicName := mess.Content
+		indexTopic := topic.GetIndexTopic(topicName, Topics)
+
+		// if topicName is not in topics, create new topic
+		if indexTopic == -1 {
+			tp := topic.InitTopic(topicName, messqueue.LenTopic)
+			Topics = append(Topics, tp)
+			indexTopic = topic.GetIndexTopic(topicName, Topics)
+			topicNames <- topicName
+		}
+		// keep listen message from this client
+		for {
+			//dec = gob.NewDecoder(conn)
+			err := dec.Decode(mess)
+
+			//if client closed connect, break keep listen
+			if err != nil {
+				break
+			}
+
+			// Status 2 : if message is publish
+			if mess.Status == 2 {
+
+				topic.PublishToTopic(Topics[indexTopic], *mess)
+
+				// send message success to client
+				conn.Write([]byte("Success"))
+
+				topic.PrintTopic(Topics)
+			}
+			defer conn.Close()
+		}
+	}
+...
+
+```
+
+Xử lý connect đến từ subscribe client, nhận các thông tin như topic muốn subscribe và xếp subscribe client vào danh sách
+các client cùng subscribe vào topic đó
+
+```
+...
+
+// struct of one connect message with a subscriber
+type sub struct {
+	encode *gob.Encoder // write message to subscriber
+	decode *gob.Decoder // read message to subscriber
+}
+...
+sub := sub{encoder, dec}
+subscribers[topicName] = append(subscribers[topicName], sub)
+...
+
+```
+
+Đối với gửi message đến các client subscribe, xử dụng goroutine để làm worker xử lý riêng biệt
+
+```
+...
+
+// all name of topics
+var topicNames chan string
+
+// all subscriber in one topic
+var subscribers map[string] []sub
+
+...
+
+go func() {
+		for {
+			topicName := <- topicNames
+			Subscribe(topicName)
+		}
+
+}()
+...
+
+```
+
+Thực hiện gửi message trong 1 topic đến subscribe client 
+
+```
+// worker to subscribe message to all subscriber this topic
+func Subscribe(topicName string){
+	...
 }
 
 ```
-Server listion at port 8080
+
+Gửi message trong topic đến từng client subscribe vào topic đó
+
+```
+// get subscribers in this topic
+allSub := subscribers[topicName]
+
+...
+
+mess := <-Topics[indexTopic].MessQueue
+		for i := 0;i<len(allSub);i++{
+		    ...
+		}
+
+```
+
+Trường hợp connect giữa server và client bị ngắt, xóa connect của client trong danh sách các client sub vào topic
+và nếu là client duy nhất sub vào topic, khi gửi lỗi cần return message đó vào topic để không bị mất dữ liệu
+
+```
+if er != nil {
+				fmt.Println("Connect fail, return message to topic")
+				if len(allSub) == 0{
+					topic.PublishToTopic(Topics[indexTopic], mess.(messqueue.Message))
+				}
+				if len(allSub) >0{
+					// delete conn of client
+					allSub = removeItemArray(allSub, i)
+					i = i-1
+				}
+				continue
+			}
+
+```
+
+Server listen at port 8080
 
 #### 2.2.4 Publisher 
 
-Khởi tạo connect và gửi message đến server
+Khởi tạo connect, tên topic muốn publish tới và gửi các message đến server
 
 socket/publish_client.go:
 
 ```
+// convert bytes array to string
 func BytesToString(data []byte) string {
 	return string(data[:])
 }
 
-func InitConn(ip string, port int) bool{
-	addr := strings.Join([]string{ip, strconv.Itoa(port)}, ":")
-	conn, err := net.Dial("tcp", addr)
-	if err != nil {
-		log.Fatal("Connection error", err)
-		return false
-	}
-	encoder := gob.NewEncoder(conn)
-
+// init connection to server
+func InitConn(conn *net.TCPConn, encoder *gob.Encoder, topicName string) bool{
 	// Init connect to server
-	mess := messqueue.CreateMessage(messqueue.InitConnectStatus, "Init")
+	mess := messqueue.CreateMessage(messqueue.InitConnectStatus, topicName)
 	encoder.Encode(mess)
 	buff := make([]byte, 1024)
 	n, _ := conn.Read(buff)
@@ -469,25 +512,38 @@ func InitConn(ip string, port int) bool{
 	if BytesToString(buff[:n]) != "OK"{
 		return false
 	}
-	conn.Close()
-	fmt.Println("done");
 	return true
 }
 
-func SendMess(ip string, port int){
+// send publish message to server
+func SendMess(ip string, port int, topicName string){
+	fmt.Println("Publish to topic " + topicName)
 	addr := strings.Join([]string{ip, strconv.Itoa(port)}, ":")
-	conn, err := net.Dial("tcp", addr)
+	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
+	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+
 	if err != nil {
 		log.Fatal("Connection error", err)
 	}
+
+	// Publish 3 message
 	encoder := gob.NewEncoder(conn)
 
-	// Publish message
-	mess := messqueue.CreateMessage(messqueue.PublishStatus, "Message")
-	encoder.Encode(mess)
-	buff := make([]byte, 1024)
-	n, _ := conn.Read(buff)
-	log.Printf("Receive: %s", buff[:n])
+	// init connect to server
+	init := InitConn(conn, encoder, topicName)
+
+	// if server accept connect, publish message
+	if init == true {
+		for i := 0; i < 10; i++ {
+			content := rand.Intn(100)
+			mess := messqueue.CreateMessage(messqueue.PublishStatus, strconv.Itoa(content))
+			encoder.Encode(mess)
+			buff := make([]byte, 1024)
+			n, _ := conn.Read(buff)
+			log.Printf("Receive: %s", buff[:n])
+			time.Sleep(1 * time.Second)
+		}
+	}
 	conn.Close()
 	fmt.Println("done");
 }
@@ -499,39 +555,59 @@ func main() {
 		ip   = "127.0.0.1"
 		port = 8080
 	)
+	topicName := os.Args[1]
 	fmt.Println("start client");
-	succ := InitConn(ip, port)
-	if succ == true{
-		SendMess(ip, port)
-	}
+	SendMess(ip, port, topicName)
 }
 
 ```
 
 #### 2.2.5 Subscriber 
 
-Gửi message để lấy message trong topic mong muốn
+Khởi tạo message đến server chứa tên topic cần subscribe, chờ để nhận các message chứa trong topic đó
 
-socket/subscribe_client.go
+pub_sub/subscribe_client.go
 
 ```
+// send subscribe message to server and get message response
 func GetMess(ip string, port int, topicName string){
 	addr := strings.Join([]string{ip, strconv.Itoa(port)}, ":")
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		log.Fatal("Connection error", err)
 	}
-	encoder := gob.NewEncoder(conn)
 
 	// subscribe topic with topicName
 	fmt.Println("Subscribe topic : ", topicName)
+
+	// create subscribe message send to server
 	mess := messqueue.CreateMessage(messqueue.SubscribeStatus, topicName)
+
+	// create nil message return after receive from server
+	mes := messqueue.CreateMessage(messqueue.NilMessageStatus, topicName)
+	// init encoder to send data to server
+	encoder := gob.NewEncoder(conn)
 	encoder.Encode(mess)
+
+	// init decoder to read data from server response
 	dec := gob.NewDecoder(conn)
-	messRes := &messqueue.Message{}
-	dec.Decode(messRes)
-	conn.Close()
-	fmt.Println("Received message : ", messRes);
+
+	for {
+
+		messRes := &messqueue.Message{}
+		err = dec.Decode(messRes)
+		if err != nil{
+			log.Fatal(err)
+			break
+		}
+		err = encoder.Encode(mes)
+		if err != nil{
+			log.Fatal(err)
+			break
+		}
+		fmt.Println("Received message : ", messRes, "from topic " + topicName)
+	}
+	defer conn.Close()
 }
 
 func main() {
@@ -539,8 +615,9 @@ func main() {
 		ip   = "127.0.0.1"
 		port = 8080
 	)
+	topicName := os.Args[1]
 	fmt.Println("subscribe client");
-	GetMess(ip, port, "Message")
+	GetMess(ip, port, topicName)
 }
 
 ```
