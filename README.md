@@ -493,7 +493,7 @@ Server listen at port 8080
 
 Khởi tạo connect, tên topic muốn publish tới và gửi các message đến server
 
-socket/publish_client.go:
+pub_sub/publish_client.go:
 
 ```
 // convert bytes array to string
