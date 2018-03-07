@@ -98,62 +98,6 @@ func HandleConnection(conn net.Conn) {
 		subscribers[topicName] = append(subscribers[topicName], sub)
 		mutex.Unlock()
 
-		//mutex.Lock()
-		//encoder := gob.NewEncoder(conn)
-		//subs = append(subs, encoder)
-		//mutex.Unlock()
-
-		//var messResponse messqueue.Message
-		//
-		//topicName := mess.Content
-		//
-		//fmt.Println("Subscribe Topic ", topicName)
-		//indexTopic := topic.GetIndexTopic(topicName, Topics)
-		//if indexTopic == -1 {
-		//	tp := topic.InitTopic(topicName, messqueue.LenTopic)
-		//	Topics = append(Topics, tp)
-		//	indexTopic = topic.GetIndexTopic(topicName, Topics)
-		//}
-		//
-		//mutex.Lock()
-		//if sub[topicName] >= 1{
-		//	sub[topicName] = sub[topicName] + 1
-		//}else {
-		//	sub[topicName] = 1
-		//}
-		//mutex.Unlock()
-		//
-		//// init encode to send message to client
-		//encoder := gob.NewEncoder(conn)
-		//for {
-		//	if len(Topics[indexTopic].MessQueue) != 0 {
-		//		_, messResponse = topic.Subscribe(Topics[indexTopic])
-		//		fmt.Println("Message send to subscriber : ", messResponse)
-		//		er := encoder.Encode(messResponse)
-		//		if er != nil{
-		//			fmt.Println("Connect fail, return message to topic")
-		//			topic.PublishToTopic(Topics[indexTopic], messResponse)
-		//			//log.Fatal(er)
-		//			break
-		//		}
-		//		er = dec.Decode(mess)
-		//		if er != nil{
-		//			fmt.Println("Connect fail, return message to topic")
-		//			topic.PublishToTopic(Topics[indexTopic], messResponse)
-		//			//log.Fatal(er)
-		//			break
-		//		}
-		//
-		//		// listen message return from client after send success
-		//
-		//
-		//		topic.PrintTopic(Topics)
-		//	} else {
-		//		continue
-		//	}
-		//
-		//}
-		//defer conn.Close()
 	}
 }
 
@@ -222,8 +166,8 @@ func main() {
 		// handle error
 	}
 
-	topicNames = make(chan string, 10)
-	subscribers = make(map[string] []sub, 10)
+	topicNames = make(chan string, 100)
+	subscribers = make(map[string] []sub, 100)
 
 	go func() {
 		for {
